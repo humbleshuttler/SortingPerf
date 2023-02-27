@@ -25,11 +25,19 @@ fun main() {
             sorting.insertionSort(sorting.getValues().clone())
           }
         }
+    val job3 =
+        GlobalScope.launch {
+          sortingperformance.println("running selection sort")
+          performBenchmark(1, header, timeValues, "SelectionSort") {
+            sorting.selectionSort(sorting.getValues().clone())
+          }
+        }
 
     runBlocking {
       println("waiting for all the jobs to finish...")
       job1.join()
       job2.join()
+      job3.join()
     }
 
     printPerformance(timeValues, header)
