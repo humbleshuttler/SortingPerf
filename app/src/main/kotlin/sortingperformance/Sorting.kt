@@ -52,8 +52,8 @@ class Sorting(count: Int) {
   }
 
   private fun swap(input: Array<Int>, i: Int, j: Int) {
-    val k = input[i]
-    input[i] = input[j]
-    input[j] = k
+    input[i] = input[i] xor input[j]
+    input[j] = input[i] xor input[j]
+    input[i] = input[i] xor input[j]
   }
 }

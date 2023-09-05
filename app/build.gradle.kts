@@ -7,12 +7,10 @@
  */
 
 plugins {
-  // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
-  id("org.jetbrains.kotlin.jvm") version "1.6.21"
-
-  // Apply the application plugin to add support for building a CLI application in Java.
-  application
+  kotlin("jvm") version "1.8.22"
+  id("io.ktor.plugin") version "2.3.1"
 }
+
 
 repositories {
   // Use Maven Central for resolving dependencies.
@@ -26,11 +24,14 @@ dependencies {
   // Use the Kotlin JDK 8 standard library.
   implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.0")
-
+  implementation("io.opentelemetry:opentelemetry-api:1.27.0")
+  implementation("io.opentelemetry:opentelemetry-sdk:1.27.0")
+  implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.27.0")
+  implementation("io.opentelemetry:opentelemetry-semconv:1.27.0-alpha")
   // This dependency is used by the application.
   implementation("com.google.guava:guava:31.0.1-jre")
-  implementation("com.jakewharton.fliptables:fliptables:1.1.0")
-
+  implementation("com.newrelic.telemetry:telemetry-core:0.15.0")
+  implementation("com.newrelic.telemetry:telemetry-http-okhttp:0.15.0")
   // Use the Kotlin test library.
   testImplementation("org.jetbrains.kotlin:kotlin-test")
 
@@ -38,8 +39,12 @@ dependencies {
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 }
 
-application {
-  // Define the main class for the application.
-  mainClass.set("sortingperformance.AppKt")
-}
+version = "0.0.1"
 
+application {
+  mainClass.set("sortingperformance.AppKt")
+//
+  applicationDefaultJvmArgs =
+    listOf(
+      "-javaagent:/opt/newrelic/newrelic.jar")
+}

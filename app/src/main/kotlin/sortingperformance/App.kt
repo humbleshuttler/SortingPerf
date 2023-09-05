@@ -1,19 +1,32 @@
 package sortingperformance
 
-import com.jakewharton.fliptables.FlipTable
+import io.opentelemetry.api.common.AttributeKey
+import io.opentelemetry.api.common.Attributes
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.system.measureTimeMillis
-import kotlinx.coroutines.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import telemetry.OpenTelemetry
+
+private val sortTimeMetrics =
+    OpenTelemetry.getMeter()
+        .histogramBuilder("sort_time")
+        .setDescription("Time taken to sort")
+        .setUnit("ms")
+        .ofLongs()
+        .build()
+
+private val sortTimeMs: AtomicLong = AtomicLong()
 
 fun main() {
   val totalTime = measureTimeMillis {
     val sorting = Sorting(100000)
-    val header: MutableList<String> = mutableListOf()
-    val timeValues: MutableList<Long> = mutableListOf()
 
     val job1 =
         GlobalScope.launch {
           println("running bubblesort...")
-          performBenchmark(1, header, timeValues, "BubbleSort") {
+          performBenchmark(1, Attributes.of(AttributeKey.stringKey("algo"), "bubble_sort")) {
             sorting.bubbleSort(sorting.getValues().clone())
           }
         }
@@ -21,14 +34,14 @@ fun main() {
     val job2 =
         GlobalScope.launch {
           println("running insertion sort")
-          performBenchmark(1, header, timeValues, "InsertionSort") {
+          performBenchmark(1, Attributes.of(AttributeKey.stringKey("algo"), "insertion_sort")) {
             sorting.insertionSort(sorting.getValues().clone())
           }
         }
     val job3 =
         GlobalScope.launch {
-          sortingperformance.println("running selection sort")
-          performBenchmark(1, header, timeValues, "SelectionSort") {
+          println("running selection sort")
+          performBenchmark(1, Attributes.of(AttributeKey.stringKey("algo"), "selection_sort")) {
             sorting.selectionSort(sorting.getValues().clone())
           }
         }
@@ -39,32 +52,14 @@ fun main() {
       job2.join()
       job3.join()
     }
-
-    printPerformance(timeValues, header)
   }
   println("total time: $totalTime")
+  OpenTelemetry.openTelemetrySdk.sdkMeterProvider.shutdown()
 }
 
-private fun printPerformance(timeValues: List<Long>, header: List<String>) {
-  val arr2D = Array(1) { Array(timeValues.size) { "" } }
-  for (i in timeValues.indices) {
-    arr2D[0][i] = timeValues[i].toString()
-  }
-
-  kotlin.io.println(FlipTable.of(header.toTypedArray(), arr2D))
-}
-
-private fun performBenchmark(
-    times: Int,
-    headers: MutableList<String>,
-    values: MutableList<Long>,
-    header: String,
-    fn: () -> Unit
-) {
-  var timeElapsed = 0L
-  timeElapsed = measureTimeMillis { repeat(times) { fn() } }
-  headers.add(header)
-  values.add(timeElapsed)
+private fun performBenchmark(times: Int, attributes: Attributes, fn: () -> Unit) {
+  val timeElapsed = measureTimeMillis { repeat(times) { fn() } }
+  sortTimeMetrics.record(timeElapsed, attributes)
 }
 
 internal inline fun println(message: Any?) {
